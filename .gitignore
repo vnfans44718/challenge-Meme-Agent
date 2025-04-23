@@ -24,4 +24,12 @@ dist-ssr
 *.sw?
 
 # Environment variable files
-*.env
+*.env# Node
+node_modules/
+
+# Python
+__pycache__/
+
+# Secrets
+.env
+backend/.env

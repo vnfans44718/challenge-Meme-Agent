@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function MemeRecommendationApp() {
   const [emotion, setEmotion] = useState('');
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const buttonRef = useRef(null);
 
   const fetchMemes = async () => {
     if (!emotion.trim()) return;
@@ -36,13 +37,15 @@ export default function MemeRecommendationApp() {
       minHeight: '100vh',
       background: '#f7f7f7',
     },
-    header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
+    header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 , color: '#000' },
     control: { display: 'flex', marginBottom: 24 },
     input: {
       flex: 1,
       padding: 8,
       border: '1px solid #ccc',
       borderRadius: 4,
+      background: '#fff',
+      color: '#000', 
     },
     button: {
       marginLeft: 8,
@@ -120,22 +123,28 @@ export default function MemeRecommendationApp() {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>무한도전 밈 추천기</h1>
-      <div style={styles.control}>
-        <input
-          type="text"
-          placeholder="문장을 입력하세요 (AI가 감정 분석 → 밈 추천)"
-          value={emotion}
-          onChange={(e) => setEmotion(e.target.value)}
-          style={styles.input}
-        />
-        <button
-          onClick={fetchMemes}
-          disabled={loading}
-          style={{ ...styles.button, opacity: loading ? 0.6 : 1 }}
-        >
-          {loading ? '추천 중...' : '추천 받기'}
-        </button>
-      </div>
+      <form
+      style={styles.control}
+      onSubmit={(e) => {
+        e.preventDefault();
+        fetchMemes();
+      }}
+    >
+      <input
+        type="text"
+        placeholder="문장을 입력하세요 (AI가 감정 분석 → 밈 추천)"
+        value={emotion}
+        onChange={(e) => setEmotion(e.target.value)}
+        style={styles.input}
+      />
+      <button
+        type="submit"               // ← submit 타입으로 변경
+        disabled={loading}
+        style={{ ...styles.button, opacity: loading ? 0.6 : 1 }}
+      >
+        {loading ? '추천 중...' : '추천 받기'}
+      </button>
+    </form>
       <div style={styles.grid}>
         {memes.map((m) => (
           <div
