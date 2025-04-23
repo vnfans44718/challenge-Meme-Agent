@@ -1,11 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from "react";
+import logo from "./assets/infinite-meme-logo.png";
 
 export default function MemeRecommendationApp() {
-  const [emotion, setEmotion] = useState('');
+  const [emotion, setEmotion] = useState("");
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const buttonRef = useRef(null);
+
+  const isInitial = memes.length === 0;
 
   const fetchMemes = async () => {
     if (!emotion.trim()) return;
@@ -24,144 +26,207 @@ export default function MemeRecommendationApp() {
   };
 
   const shareToInstagramStory = (url) => {
-    const shareUrl = `https://www.instagram.com/create/story/?url=${encodeURIComponent(url)}`;
-    window.open(shareUrl, '_blank');
+    const shareUrl = `https://www.instagram.com/create/story/?url=${encodeURIComponent(
+      url
+    )}`;
+    window.open(shareUrl, "_blank");
   };
 
   const styles = {
+    // 초기화면용 전체 중앙 레이아웃
+    outer: {
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "100vh",
+      background: "#f7f7f7",
+      fontFamily: "sans-serif",
+    },
+    // 검색 후 일반 컨테이너 (왼쪽 정렬)
     container: {
       maxWidth: 960,
-      margin: "0 auto",
+      margin: "40px auto",
       padding: 20,
-      fontFamily: 'sans-serif',
-      minHeight: '100vh',
-      background: '#f7f7f7',
+      background: "#f7f7f7",
+      fontFamily: "sans-serif",
+      minHeight: "100vh",
+      textAlign: "left",
     },
-    header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 , color: '#000' },
-    control: { display: 'flex', marginBottom: 24 },
+    // 헤더 그룹 (제목 + 로고) — 항상 왼쪽
+    headerGroup: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      width: "80%",
+      maxWidth: 600,
+      justifyContent: isInitial ? "flex-start" : "flex-start",
+      margin: isInitial
+        ? "0 auto 24px auto" // 초기: 가로 중앙 + 아래 24px
+        : "0 0 24px 0", // 검색 후: 좌측 붙이고 아래만 24px
+      cursor: "pointer",
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: "bold",
+      color: "#000",
+      margin: 0,
+    },
+    logo: {
+      width: 48,
+      height: 48,
+    },
+    // 검색 폼
+    form: {
+      display: "flex",
+      width: isInitial ? "80%" : "80%",
+      maxWidth: 600,
+      margin: isInitial ? "0 auto 24px auto" : "0 0 40px 0",
+      justifyContent: isInitial ? "center" : "flex-start",
+    },
     input: {
       flex: 1,
-      padding: 8,
-      border: '1px solid #ccc',
+      padding: 10,
+      border: "1px solid #ccc",
       borderRadius: 4,
-      background: '#fff',
-      color: '#000', 
+      background: "#fff",
+      color: "#000",
+      fontSize: 16,
     },
     button: {
       marginLeft: 8,
-      padding: '8px 16px',
-      background: '#007bff',
-      color: '#fff',
-      border: 'none',
+      padding: "10px 20px",
+      background: "#007bff",
+      color: "#fff",
+      border: "none",
       borderRadius: 4,
-      cursor: 'pointer',
+      cursor: "pointer",
+      fontSize: 16,
     },
-    grid: { display: 'flex', flexWrap: 'wrap', gap: 16 },
+    // 추천 결과 그리드 (왼쪽 정렬)
+    grid: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 16,
+      justifyContent: "flex-start",
+      alignItems: "flex-start",
+    },
     card: {
-      width: 'calc(25% - 16px)',
-      background: '#fff',
+      width: "calc(25% - 16px)",
+      height: 200,
+      background: "#fff",
       borderRadius: 4,
-      overflow: 'hidden',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-      cursor: 'pointer',
+      overflow: "hidden",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+      cursor: "pointer",
     },
     thumbnail: {
-      width: '100%',
-      height: 200,
-      objectFit: 'cover',
-      background: '#eee',
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      background: "#eee",
     },
+    // 모달
     modalOverlay: {
-      position: 'fixed',
+      position: "fixed",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      backgroundColor: "rgba(0,0,0,0.8)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       zIndex: 1000,
     },
     modalContent: {
-      position: 'relative',
-      background: '#fff',
+      position: "relative",
+      background: "#fff",
       borderRadius: 8,
       padding: 16,
-      maxWidth: '90%',
-      maxHeight: '90%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
+      maxWidth: "90%",
+      maxHeight: "90%",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
     },
     modalImage: {
-      maxWidth: '100%',
-      maxHeight: '80vh',
+      maxWidth: "100%",
+      maxHeight: "80vh",
       marginBottom: 12,
     },
     storyButton: {
-      padding: '8px 16px',
-      background: '#405de6',
-      color: '#fff',
-      border: 'none',
+      padding: "8px 16px",
+      background: "#405de6",
+      color: "#fff",
+      border: "none",
       borderRadius: 4,
-      cursor: 'pointer',
+      cursor: "pointer",
       fontSize: 16,
     },
     closeButton: {
-      position: 'absolute',
+      position: "absolute",
       top: 8,
       right: 8,
-      background: 'transparent',
-      border: 'none',
+      background: "transparent",
+      border: "none",
       fontSize: 24,
-      color: '#333',
-      cursor: 'pointer',
+      color: "#333",
+      cursor: "pointer",
     },
   };
 
+  const reset = () => {
+    setMemes([]);
+    setEmotion("");
+    setSelectedImage(null);
+  };
+
   return (
-    <div style={styles.container}>
-      <h1 style={styles.header}>무한도전 밈 추천기</h1>
-      <form
-      style={styles.control}
-      onSubmit={(e) => {
-        e.preventDefault();
-        fetchMemes();
-      }}
-    >
-      <input
-        type="text"
-        placeholder="문장을 입력하세요 (AI가 감정 분석 → 밈 추천)"
-        value={emotion}
-        onChange={(e) => setEmotion(e.target.value)}
-        style={styles.input}
-      />
-      <button
-        type="submit"               // ← submit 타입으로 변경
-        disabled={loading}
-        style={{ ...styles.button, opacity: loading ? 0.6 : 1 }}
-      >
-        {loading ? '추천 중...' : '추천 받기'}
-      </button>
-    </form>
-      <div style={styles.grid}>
-        {memes.map((m) => (
-          <div
-            key={m.id}
-            style={styles.card}
-            onClick={() => setSelectedImage(m.id)}
-          >
-            <img
-              src={m.id}
-              alt={m.title}
-              style={styles.thumbnail}
-            />
-          </div>
-        ))}
+    <div style={isInitial ? styles.outer : styles.container}>
+      {/* 헤더: 제목 클릭 시 초기화 */}
+      <div style={styles.headerGroup} onClick={reset}>
+        <h1 style={styles.header}>Infinite Challenge Meme Finder</h1>
+        <img src={logo} alt="logo" style={styles.logo} />
       </div>
 
-      {selectedImage && (
+      {/* 검색 폼 */}
+      <form
+        style={styles.form}
+        onSubmit={(e) => {
+          e.preventDefault();
+          fetchMemes();
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Type a sentence (AI will analyze and suggest a meme)"
+          value={emotion}
+          onChange={(e) => setEmotion(e.target.value)}
+          style={styles.input}
+        />
+        <button type="submit" disabled={loading} style={styles.button}>
+          {loading ? "Recommending..." : "Get Meme"}
+        </button>
+      </form>
+
+      {/* 추천 결과 */}
+      {!isInitial && (
+        <div style={styles.grid}>
+          {memes.map((m) => (
+            <div
+              key={m.id}
+              style={styles.card}
+              onClick={() => setSelectedImage(m.id)}
+            >
+              <img src={m.id} alt={m.title} style={styles.thumbnail} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 모달 */}
+      {!isInitial && selectedImage && (
         <div style={styles.modalOverlay} onClick={() => setSelectedImage(null)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button
@@ -179,7 +244,7 @@ export default function MemeRecommendationApp() {
               style={styles.storyButton}
               onClick={() => shareToInstagramStory(selectedImage)}
             >
-              인스타 스토리 공유
+              Share to Instagram Story
             </button>
           </div>
         </div>
