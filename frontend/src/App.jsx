@@ -1,253 +1,181 @@
-import React, { useState } from "react";
-import logo from "./assets/infinite-meme-logo.png";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import Header from "./components/Header";
+import SearchForm from "./components/SearchForm";
+import MemeGrid from "./components/MemeGrid";
+import MemeModal from "./components/MemeModal";
+import { API_BASE_URL } from "./config";
+
+const initialSearchState = {
+  hasSearched: false,
+  memes: [],
+  emotionKey: null,
+  classifiedEmotion: null,
+  offset: 0,
+  hasMore: false,
+};
+
+function searchReducer(state, action) {
+  switch (action.type) {
+    case "search_success":
+      return {
+        hasSearched: true,
+        memes: action.memes,
+        emotionKey: action.emotionKey,
+        classifiedEmotion: action.classifiedEmotion,
+        offset: action.memes.length,
+        hasMore: action.hasMore,
+      };
+    case "load_more_success":
+      return {
+        ...state,
+        memes: [...state.memes, ...action.memes],
+        offset: state.offset + action.memes.length,
+        hasMore: action.hasMore,
+      };
+    case "reset":
+      return initialSearchState;
+    default:
+      return state;
+  }
+}
 
 export default function MemeRecommendationApp() {
   const [emotion, setEmotion] = useState("");
-  const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [error, setError] = useState(null);
+  const [search, dispatch] = useReducer(searchReducer, initialSearchState);
 
-  const isInitial = memes.length === 0;
+  const sentinelRef = useRef(null);
+
+  const isInitial = !search.hasSearched;
 
   const fetchMemes = async () => {
     if (!emotion.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(
-        `/api/memes?emotion_text=${encodeURIComponent(emotion)}`
+        `${API_BASE_URL}/api/memes?emotion_text=${encodeURIComponent(emotion)}`
       );
-      const { memes: list } = await res.json();
-      setMemes(list || []);
+      if (!res.ok) throw new Error(`요청이 실패했습니다 (${res.status})`);
+      const data = await res.json();
+      dispatch({
+        type: "search_success",
+        memes: data.memes || [],
+        emotionKey: data.emotion || null,
+        classifiedEmotion: data.classifiedEmotion || null,
+        hasMore: Boolean(data.hasMore),
+      });
     } catch (err) {
       console.error(err);
+      setError("짤을 불러오지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
   };
 
-  const shareToInstagramStory = (url) => {
-    const shareUrl = `https://www.instagram.com/create/story/?url=${encodeURIComponent(
-      url
-    )}`;
-    window.open(shareUrl, "_blank");
-  };
+  const loadMoreMemes = useCallback(async () => {
+    if (!search.emotionKey || !search.hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/memes/by-emotion?emotion=${encodeURIComponent(search.emotionKey)}&offset=${search.offset}`
+      );
+      if (!res.ok) throw new Error(`요청이 실패했습니다 (${res.status})`);
+      const data = await res.json();
+      dispatch({
+        type: "load_more_success",
+        memes: data.memes || [],
+        hasMore: Boolean(data.hasMore),
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [search.emotionKey, search.hasMore, search.offset, loadingMore]);
 
-  const styles = {
-    // 초기화면용 전체 중앙 레이아웃
-    outer: {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      background: "#f7f7f7",
-      fontFamily: "sans-serif",
-    },
-    // 검색 후 일반 컨테이너 (왼쪽 정렬)
-    container: {
-      maxWidth: 960,
-      margin: "40px auto",
-      padding: 20,
-      background: "#f7f7f7",
-      fontFamily: "sans-serif",
-      minHeight: "100vh",
-      textAlign: "left",
-    },
-    // 헤더 그룹 (제목 + 로고) — 항상 왼쪽
-    headerGroup: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      width: "80%",
-      maxWidth: 600,
-      justifyContent: isInitial ? "flex-start" : "flex-start",
-      margin: isInitial
-        ? "0 auto 24px auto" // 초기: 가로 중앙 + 아래 24px
-        : "0 0 24px 0", // 검색 후: 좌측 붙이고 아래만 24px
-      cursor: "pointer",
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: "bold",
-      color: "#000",
-      margin: 0,
-    },
-    logo: {
-      width: 48,
-      height: 48,
-    },
-    // 검색 폼
-    form: {
-      display: "flex",
-      width: isInitial ? "80%" : "80%",
-      maxWidth: 600,
-      margin: isInitial ? "0 auto 24px auto" : "0 0 40px 0",
-      justifyContent: isInitial ? "center" : "flex-start",
-    },
-    input: {
-      flex: 1,
-      padding: 10,
-      border: "1px solid #ccc",
-      borderRadius: 4,
-      background: "#fff",
-      color: "#000",
-      fontSize: 16,
-    },
-    button: {
-      marginLeft: 8,
-      padding: "10px 20px",
-      background: "#007bff",
-      color: "#fff",
-      border: "none",
-      borderRadius: 4,
-      cursor: "pointer",
-      fontSize: 16,
-    },
-    // 추천 결과 그리드 (왼쪽 정렬)
-    grid: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 16,
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
-    },
-    card: {
-      width: "calc(25% - 16px)",
-      height: 200,
-      background: "#fff",
-      borderRadius: 4,
-      overflow: "hidden",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-      cursor: "pointer",
-    },
-    thumbnail: {
-      width: "100%",
-      height: "100%",
-      objectFit: "cover",
-      background: "#eee",
-    },
-    // 모달
-    modalOverlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.8)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    },
-    modalContent: {
-      position: "relative",
-      background: "#fff",
-      borderRadius: 8,
-      padding: 16,
-      maxWidth: "90%",
-      maxHeight: "90%",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-    },
-    modalImage: {
-      maxWidth: "100%",
-      maxHeight: "80vh",
-      marginBottom: 12,
-    },
-    storyButton: {
-      padding: "8px 16px",
-      background: "#405de6",
-      color: "#fff",
-      border: "none",
-      borderRadius: 4,
-      cursor: "pointer",
-      fontSize: 16,
-    },
-    closeButton: {
-      position: "absolute",
-      top: 8,
-      right: 8,
-      background: "transparent",
-      border: "none",
-      fontSize: 24,
-      color: "#333",
-      cursor: "pointer",
-    },
-  };
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreMemes();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadMoreMemes]);
 
   const reset = () => {
-    setMemes([]);
     setEmotion("");
     setSelectedImage(null);
+    setError(null);
+    dispatch({ type: "reset" });
   };
 
-  return (
-    <div style={isInitial ? styles.outer : styles.container}>
-      {/* 헤더: 제목 클릭 시 초기화 */}
-      <div style={styles.headerGroup} onClick={reset}>
-        <h1 style={styles.header}>Infinite Challenge Meme Finder</h1>
-        <img src={logo} alt="logo" style={styles.logo} />
-      </div>
+  const showEmptyState =
+    !isInitial && !loading && !error && search.memes.length === 0;
 
-      {/* 검색 폼 */}
-      <form
-        style={styles.form}
+  return (
+    <div
+      className={
+        isInitial
+          ? "flex flex-col justify-center items-center h-screen bg-[#f7f7f7] font-sans"
+          : "max-w-[960px] mx-auto my-10 p-5 bg-[#f7f7f7] font-sans min-h-screen text-left"
+      }
+    >
+      <Header isInitial={isInitial} onReset={reset} />
+
+      <SearchForm
+        isInitial={isInitial}
+        emotion={emotion}
+        loading={loading}
+        onChange={setEmotion}
         onSubmit={(e) => {
           e.preventDefault();
           fetchMemes();
         }}
-      >
-        <input
-          type="text"
-          placeholder="Type a sentence (AI will analyze and suggest a meme)"
-          value={emotion}
-          onChange={(e) => setEmotion(e.target.value)}
-          style={styles.input}
-        />
-        <button type="submit" disabled={loading} style={styles.button}>
-          {loading ? "Recommending..." : "Get Meme"}
-        </button>
-      </form>
+      />
 
-      {/* 추천 결과 */}
-      {!isInitial && (
-        <div style={styles.grid}>
-          {memes.map((m) => (
-            <div
-              key={m.id}
-              style={styles.card}
-              onClick={() => setSelectedImage(m.id)}
-            >
-              <img src={m.id} alt={m.title} style={styles.thumbnail} />
-            </div>
-          ))}
+      {error && (
+        <p className={`text-red-600 text-sm mb-4 ${isInitial ? "mx-auto" : ""}`}>
+          {error}
+        </p>
+      )}
+
+      {!isInitial && search.classifiedEmotion && (
+        <p className="text-sm text-gray-600 mb-4">감정: {search.classifiedEmotion}</p>
+      )}
+
+      {showEmptyState && (
+        <p className="text-sm text-gray-600 mb-4">
+          해당 감정에 맞는 짤을 찾지 못했어요.
+        </p>
+      )}
+
+      {!isInitial && search.memes.length > 0 && (
+        <MemeGrid memes={search.memes} onSelect={setSelectedImage} />
+      )}
+
+      {!isInitial && search.hasMore && (
+        <div ref={sentinelRef} className="h-10 flex items-center justify-center">
+          {loadingMore && (
+            <p className="text-sm text-gray-500">더 불러오는 중...</p>
+          )}
         </div>
       )}
 
-      {/* 모달 */}
       {!isInitial && selectedImage && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedImage(null)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button
-              style={styles.closeButton}
-              onClick={() => setSelectedImage(null)}
-            >
-              &times;
-            </button>
-            <img
-              src={selectedImage}
-              alt="Enlarged meme"
-              style={styles.modalImage}
-            />
-            <button
-              style={styles.storyButton}
-              onClick={() => shareToInstagramStory(selectedImage)}
-            >
-              Share to Instagram Story
-            </button>
-          </div>
-        </div>
+        <MemeModal
+          key={selectedImage}
+          imageUrl={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   );
