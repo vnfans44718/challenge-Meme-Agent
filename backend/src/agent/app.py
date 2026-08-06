@@ -1,25 +1,64 @@
+import logging
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from agent.graph import graph  # graph는 동기 방식으로 invoke됨
-import json  # 결과 출력용
+
+from agent.recommend import recommend_memes
+from agent.services.meme_repository import VALID_EMOTION_KEYS, get_memes_by_emotion_safe
+
+load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# ─── CORS 설정 (프론트와 연동 시 필수) ───────────────
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발 단계에서는 전체 허용, 배포 시 도메인으로 제한 권장
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+@app.get("/")
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 @app.get("/api/memes")
 def get_memes(emotion_text: str = Query(..., description="추천용 문장")):
     try:
-        result = graph.invoke({"emotion_text": emotion_text})  # ✅ LangGraph 실행
-        print("🟢 최종 결과:", json.dumps(result, ensure_ascii=False, indent=2))
-        return {"memes": result["memes"]}
-    except Exception as e:
-        print("🔴 API 에러:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        result = recommend_memes(emotion_text)
+        logger.info(
+            "추천 완료: emotion_text=%r, emotion=%r, memes=%d개",
+            emotion_text, result["emotion_key"], len(result["memes"]),
+        )
+        return {
+            "emotion": result["emotion_key"],
+            "classified_emotion": result["classified_emotion"],
+            "memes": result["memes"],
+        }
+    except Exception:
+        logger.exception("짤 추천 처리 중 오류 발생: emotion_text=%r", emotion_text)
+        raise HTTPException(status_code=500, detail="짤 추천 처리 중 오류가 발생했습니다.")
+
+
+@app.get("/api/memes/by-emotion")
+def get_memes_by_emotion_endpoint(
+    emotion: str = Query(..., description="감정 라벨 (기쁨/상처/슬픔/분노/불안/당황/중립)")
+):
+    if emotion not in VALID_EMOTION_KEYS:
+        raise HTTPException(status_code=400, detail="유효하지 않은 감정 값입니다.")
+    memes = get_memes_by_emotion_safe(emotion)
+    logger.info("다른 짤 조회 완료: emotion=%r, memes=%d개", emotion, len(memes))
+    return {"emotion": emotion, "memes": memes}
