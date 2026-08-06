@@ -45,8 +45,9 @@ def get_memes(emotion_text: str = Query(..., description="추천용 문장")):
         )
         return {
             "emotion": result["emotion_key"],
-            "classified_emotion": result["classified_emotion"],
+            "classifiedEmotion": result["classified_emotion"],
             "memes": result["memes"],
+            "hasMore": result["has_more"],
         }
     except Exception:
         logger.exception("짤 추천 처리 중 오류 발생: emotion_text=%r", emotion_text)
@@ -55,10 +56,11 @@ def get_memes(emotion_text: str = Query(..., description="추천용 문장")):
 
 @app.get("/api/memes/by-emotion")
 def get_memes_by_emotion_endpoint(
-    emotion: str = Query(..., description="감정 라벨 (기쁨/상처/슬픔/분노/불안/당황/중립)")
+    emotion: str = Query(..., description="감정 라벨 (기쁨/상처/슬픔/분노/불안/당황/중립)"),
+    offset: int = Query(0, ge=0, description="페이지네이션 시작 위치"),
 ):
     if emotion not in VALID_EMOTION_KEYS:
         raise HTTPException(status_code=400, detail="유효하지 않은 감정 값입니다.")
-    memes = get_memes_by_emotion_safe(emotion)
-    logger.info("다른 짤 조회 완료: emotion=%r, memes=%d개", emotion, len(memes))
-    return {"emotion": emotion, "memes": memes}
+    memes, has_more = get_memes_by_emotion_safe(emotion, offset=offset)
+    logger.info("짤 페이지 조회 완료: emotion=%r, offset=%d, memes=%d개", emotion, offset, len(memes))
+    return {"emotion": emotion, "memes": memes, "hasMore": has_more}

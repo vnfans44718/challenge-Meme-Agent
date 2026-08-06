@@ -8,7 +8,7 @@ from agent.services.emotion_classifier import EMOTION_LABELS
 @patch("agent.recommend.classify_emotion")
 def test_recommend_memes_classifies_then_recommends(mock_classify, mock_get_memes):
     mock_classify.return_value = "기쁨"
-    mock_get_memes.return_value = [{"id": 1, "imageUrl": "url", "title": "t"}]
+    mock_get_memes.return_value = ([{"id": 1, "imageUrl": "url", "title": "t"}], True)
 
     result = recommend_memes("오늘 기분 좋아!")
 
@@ -18,6 +18,7 @@ def test_recommend_memes_classifies_then_recommends(mock_classify, mock_get_meme
         "classified_emotion": "기쁨",
         "emotion_key": "기쁨",
         "memes": [{"id": 1, "imageUrl": "url", "title": "t"}],
+        "has_more": True,
     }
 
 
@@ -25,7 +26,7 @@ def test_recommend_memes_classifies_then_recommends(mock_classify, mock_get_meme
 @patch("agent.recommend.classify_emotion")
 def test_recommend_memes_falls_back_to_default_when_unmapped(mock_classify, mock_get_memes):
     mock_classify.return_value = "알수없음"
-    mock_get_memes.return_value = []
+    mock_get_memes.return_value = ([], False)
 
     result = recommend_memes("...")
 
