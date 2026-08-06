@@ -27,6 +27,7 @@ dist-ssr/
 # Python bytecode
 __pycache__/
 *.py[cod]
+.pytest_cache/
 
 # Environment variable files
 *.env
@@ -35,6 +36,9 @@ backend/.env
 # Vite / front-end build
 frontend/dist/
 frontend/.env
+
+# Claude Code local settings (허용된 Bash 명령어 목록에 세션 중 사용한 API 키가 그대로 남을 수 있음)
+.claude/
 
 # OS files
 Thumbs.db
