@@ -161,6 +161,7 @@ poetry run pytest
 로컬 개발과 달리 프론트엔드/백엔드가 서로 다른 도메인에 배포되므로 아래 두 가지를 반드시 설정해야 합니다.
 
 - **프론트엔드**: 배포 환경에 `VITE_API_BASE_URL=https://your-backend-domain.com` 설정 (Vite 프록시는 `npm run dev` 개발 서버 전용 기능이라 빌드된 프로덕션 번들에는 적용되지 않습니다)
-- **백엔드**: 배포 환경에 `ALLOWED_ORIGINS=https://your-frontend-domain.com` 설정 (미설정 시 로컬 개발 서버만 허용되어 배포된 프론트엔드에서 요청이 CORS로 막힙니다)
-- 백엔드 시작 커맨드는 로컬과 동일: `uvicorn agent.app:app --app-dir src --port $PORT` (`--reload`는 프로덕션에서 제외)
+- **백엔드**: 배포 환경에 `ALLOWED_ORIGINS=https://your-frontend-domain.com` 설정 (미설정 시 로컬 개발 서버만 허용되어 배포된 프론트엔드에서 요청이 CORS로 막힙니다). Vercel에 배포하는 경우 `*.vercel.app` 도메인(프리뷰 URL 포함)은 [app.py](backend/src/agent/app.py)의 `allow_origin_regex`로 항상 자동 허용되므로 프리뷰 배포마다 이 값을 갱신할 필요는 없음
+- 백엔드 시작 커맨드: `poetry run uvicorn agent.app:app --app-dir src --host 0.0.0.0 --port $PORT` (`--reload`는 프로덕션에서 제외, `--host 0.0.0.0`은 배포 플랫폼이 외부에서 접근 가능하게 하는 데 필요)
+- Render 등 배포 플랫폼은 Python 버전을 자체 방식으로 결정하므로(대개 최신 버전 기본값), [backend/.python-version](backend/.python-version)으로 `requires-python`과 맞는 버전을 명시적으로 고정해야 함 — 안 하면 최신 Python에서 일부 의존성(Rust 기반 패키지 등)의 사전 빌드된 바이너리가 없어 빌드가 실패할 수 있음
 - 배포 플랫폼의 헬스체크 경로는 `/` 또는 `/health` 아무거나 사용 가능
